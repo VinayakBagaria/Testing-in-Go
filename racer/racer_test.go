@@ -15,16 +15,30 @@ func makeDelayedServer(delay time.Duration) *httptest.Server {
 }
 
 func TestRaceWebsites(t *testing.T) {
-	slowServer := makeDelayedServer(5 * time.Millisecond)
-	defer slowServer.Close()
-	fastServer := makeDelayedServer(0 * time.Millisecond)
-	defer fastServer.Close()
-	slowURL := slowServer.URL
-	fastURL := fastServer.URL
+	t.Run("test fast server", func(t *testing.T) {
+		slowServer := makeDelayedServer(10 * time.Millisecond)
+		defer slowServer.Close()
+		fastServer := makeDelayedServer(0 * time.Millisecond)
+		defer fastServer.Close()
+		slowURL := slowServer.URL
+		fastURL := fastServer.URL
 
-	want := fastURL
-	got := RaceWebsites(slowURL, fastURL)
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+		want := fastURL
+		got, _ := RaceWebsites(slowURL, fastURL, 4*time.Millisecond)
+		if got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("test timeout", func(t *testing.T) {
+		slowServer := makeDelayedServer(15 * time.Millisecond)
+		defer slowServer.Close()
+		fastServer := makeDelayedServer(10 * time.Millisecond)
+		defer fastServer.Close()
+
+		_, err := RaceWebsites(slowServer.URL, fastServer.URL, 4*time.Millisecond)
+		if err == nil {
+			t.Error("expected an error but didn't get one")
+		}
+	})
 }
