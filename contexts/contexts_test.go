@@ -82,9 +82,9 @@ func TestServer(t *testing.T) {
 		svr := Server(stubStore)
 
 		request := httptest.NewRequest(http.MethodGet, "/", nil)
-		cancellingCtx, cancel := context.WithCancel(request.Context())
-		time.AfterFunc(5*time.Millisecond, cancel)
+		cancellingCtx, cancel := context.WithTimeout(request.Context(), 5*time.Millisecond)
 		request = request.WithContext(cancellingCtx)
+		defer cancel()
 
 		response := &SpyResponseWriter{}
 		svr.ServeHTTP(response, request)
