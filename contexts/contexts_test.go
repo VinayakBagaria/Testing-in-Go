@@ -1,0 +1,75 @@
+package contexts
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
+
+type StubStore struct {
+	response  string
+	cancelled bool
+}
+
+func (s *StubStore) Fetch() string {
+	time.Sleep(100 * time.Millisecond)
+	return s.response
+}
+
+func (s *StubStore) Cancel() {
+	s.cancelled = true
+}
+
+func TestServer(t *testing.T) {
+	t.Run("tests normal server", func(t *testing.T) {
+		data := "hello"
+		stubStore := &StubStore{response: data}
+		svr := Server(stubStore)
+
+		request := httptest.NewRequest(http.MethodGet, "/", nil)
+		response := httptest.NewRecorder()
+		svr.ServeHTTP(response, request)
+
+		if response.Body.String() != data {
+			t.Errorf(`got "%s", want "%s"`, response.Body.String(), data)
+		}
+	})
+
+	t.Run("tests cancelled request", func(t *testing.T) {
+		stubStore := &StubStore{response: "hello"}
+		svr := Server(stubStore)
+
+		request := httptest.NewRequest(http.MethodGet, "/", nil)
+		cancellingCtx, cancel := context.WithCancel(request.Context())
+		time.AfterFunc(5*time.Millisecond, cancel)
+		request = request.WithContext(cancellingCtx)
+
+		response := httptest.NewRecorder()
+		svr.ServeHTTP(response, request)
+
+		if !stubStore.cancelled {
+			t.Error("store was not told to cancel")
+		}
+	})
+
+	t.Run("returns data from store", func(t *testing.T) {
+		data := "hello, world"
+		store := &StubStore{response: data}
+		svr := Server(store)
+
+		request := httptest.NewRequest(http.MethodGet, "/", nil)
+		response := httptest.NewRecorder()
+
+		svr.ServeHTTP(response, request)
+
+		if response.Body.String() != data {
+			t.Errorf(`got "%s", want "%s"`, response.Body.String(), data)
+		}
+
+		if store.cancelled {
+			t.Error("it should not have cancelled the store")
+		}
+	})
+}
