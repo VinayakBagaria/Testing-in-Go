@@ -11,6 +11,15 @@ type Sleeper interface {
 	Sleep()
 }
 
+type ConfigurableSleeper struct {
+	duration time.Duration
+	executor func(time.Duration)
+}
+
+func (c *ConfigurableSleeper) Sleep() {
+	c.executor(c.duration)
+}
+
 func Countdown(out io.Writer, sleeper Sleeper) {
 	for i := 3; i > 0; i-- {
 		fmt.Fprintln(out, i)
@@ -19,12 +28,6 @@ func Countdown(out io.Writer, sleeper Sleeper) {
 	fmt.Fprint(out, "Go!")
 }
 
-type DefaultSleeper struct{}
-
-func (d *DefaultSleeper) Sleep() {
-	time.Sleep(1 * time.Second)
-}
-
 func main() {
-	Countdown(os.Stdout, &DefaultSleeper{})
+	Countdown(os.Stdout, &ConfigurableSleeper{1 * time.Second, time.Sleep})
 }
