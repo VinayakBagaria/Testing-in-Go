@@ -1,11 +1,9 @@
 package main
 
 import (
-	"os"
-	"testing-go/maths"
-	"time"
+	"testing-go/player"
 )
 
 func main() {
-	maths.SVGWriter(os.Stdout, time.Now())
+	player.StartPlayerServer()
 }
