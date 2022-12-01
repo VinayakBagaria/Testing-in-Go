@@ -1,7 +1,6 @@
 package player
 
 import (
-	"io"
 	"os"
 	"testing"
 )
@@ -43,13 +42,13 @@ func TestFileSystemStore(t *testing.T) {
 	})
 }
 
-func createTempFile(t testing.TB, initialData string) (io.ReadWriteSeeker, func()) {
+func createTempFile(t testing.TB, initialData string) (*os.File, func()) {
 	t.Helper()
+
 	tmpFile, err := os.CreateTemp("", "db")
 	if err != nil {
 		t.Fatalf("could not create temp file %v", err)
 	}
-
 	tmpFile.Write([]byte(initialData))
 
 	removeFile := func() {
