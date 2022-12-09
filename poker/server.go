@@ -43,12 +43,6 @@ func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (p *PlayerServer) getLeagueTable() League {
-	return League{
-		{"Chris", 20},
-	}
-}
-
 func (p *PlayerServer) playersHandler(w http.ResponseWriter, r *http.Request) {
 	player := strings.TrimPrefix(r.URL.Path, "/players/")
 
