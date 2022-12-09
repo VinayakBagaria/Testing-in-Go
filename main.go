@@ -1,9 +1,16 @@
 package main
 
 import (
-	"testing-go/player"
+	cli "testing-go/poker/cmd/cli"
+	poker "testing-go/poker/cmd/webserver"
 )
 
+const TYPE = "cli"
+
 func main() {
-	player.StartPlayerServer()
+	if TYPE == "web" {
+		poker.StartPlayerServer()
+	} else if TYPE == "cli" {
+		cli.StartCLIServer()
+	}
 }
