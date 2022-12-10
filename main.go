@@ -5,7 +5,7 @@ import (
 	poker "testing-go/poker/cmd/webserver"
 )
 
-const TYPE = "cli"
+const TYPE = "web"
 
 func main() {
 	if TYPE == "web" {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -35,7 +36,7 @@ func (cli *CLI) PlayPoker() {
 		fmt.Fprint(cli.out, BadPlayerInputErrMsg)
 		return
 	}
-	cli.game.Start(numberOfPlayers)
+	cli.game.Start(numberOfPlayers, os.Stdout)
 
 	winner, err := extractWinner(cli.readLine())
 	if err != nil {
