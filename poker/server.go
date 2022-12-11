@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/websocket"
 )
 
-const jsonContentType = "application/json"
+const JsonContentType = "application/json"
+const htmlTemplatePath = "game.html"
 
 var wsUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
-
-const htmlTemplatePath = "game.html"
 
 type Player struct {
 	Name string
@@ -34,23 +34,24 @@ type PlayerServer struct {
 	store PlayerStore
 	http.Handler
 	template *template.Template
+	game     Game
 }
 
-func NewPlayerServer(store PlayerStore) (*PlayerServer, error) {
-	p := new(PlayerServer)
-	p.store = store
-
+func NewPlayerServer(store PlayerStore, game Game) (*PlayerServer, error) {
 	tmpl, err := template.ParseFiles(htmlTemplatePath)
 	if err != nil {
 		return nil, fmt.Errorf("problem opening %s %v", htmlTemplatePath, err)
 	}
 
+	p := new(PlayerServer)
+	p.store = store
 	p.template = tmpl
+	p.game = game
 
 	router := http.NewServeMux()
 	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
 	router.Handle("/players/", http.HandlerFunc(p.playersHandler))
-	router.Handle("/game", http.HandlerFunc(p.game))
+	router.Handle("/game", http.HandlerFunc(p.playGame))
 	router.Handle("/ws", http.HandlerFunc(p.webSocket))
 
 	p.Handler = router
@@ -58,9 +59,8 @@ func NewPlayerServer(store PlayerStore) (*PlayerServer, error) {
 }
 
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", jsonContentType)
+	w.Header().Set("content-type", JsonContentType)
 	json.NewEncoder(w).Encode(p.store.GetLeague())
-	w.WriteHeader(http.StatusOK)
 }
 
 func (p *PlayerServer) playersHandler(w http.ResponseWriter, r *http.Request) {
@@ -74,14 +74,19 @@ func (p *PlayerServer) playersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *PlayerServer) game(w http.ResponseWriter, r *http.Request) {
+func (p *PlayerServer) playGame(w http.ResponseWriter, r *http.Request) {
 	p.template.Execute(w, nil)
 }
 
 func (p *PlayerServer) webSocket(w http.ResponseWriter, r *http.Request) {
-	conn, _ := wsUpgrader.Upgrade(w, r, nil)
-	_, winnerMsg, _ := conn.ReadMessage()
-	p.store.RecordWin(string(winnerMsg))
+	ws := newPlayerServerWS(w, r)
+
+	numberOfPlayersMsg := ws.WaitForMsg()
+	numberOfPlayers, _ := strconv.Atoi(numberOfPlayersMsg)
+	p.game.Start(numberOfPlayers, ws)
+
+	winner := ws.WaitForMsg()
+	p.game.Finish(winner)
 }
 
 func (p *PlayerServer) processWin(w http.ResponseWriter, player string) {
@@ -95,5 +100,6 @@ func (p *PlayerServer) showScore(w http.ResponseWriter, player string) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	fmt.Fprint(w, score)
 }

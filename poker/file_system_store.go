@@ -35,7 +35,7 @@ func NewFileSystemPlayerStore(file *os.File) (*FileSystemPlayerStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("problem loading player store from file %s, %v", file.Name(), err)
 	}
-	return &FileSystemPlayerStore{json.NewEncoder(&tape{file}), league}, nil
+	return &FileSystemPlayerStore{json.NewEncoder(&Tape{file}), league}, nil
 }
 
 func (f *FileSystemPlayerStore) GetLeague() League {
